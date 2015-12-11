@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Dynamic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using Nancy;
+using Nancy.Extensions;
 using Nancy.Json;
+using ScriptServices.powershell;
 
 namespace ScriptServices
 {
     public class ScriptServicesModule : NancyModule
     {
         private readonly ConfigSettings _settings;
-        private static Dictionary<string, IEnumerable<string>> _queryEndpoints;
 
         public ScriptServicesModule(ConfigSettings settings)
         {
@@ -23,31 +20,55 @@ namespace ScriptServices
             Get["/admin"] = _ =>
                 Response.AsJson("Hello Admin!");
 
-            Get["/script/^(?<route>.*)$"] = parameters =>
+
+            Get["/script/^(?<route>.*)$"] = p =>
+                ProcessRequest(p);
+
+            Post["/script/^(?<route>.*)$"] = p =>
+                ProcessRequest(p);
+
+            Put["/script/^(?<route>.*)$"] = p =>
+                ProcessRequest(p);
+
+            Delete["/script/^(?<route>.*)$"] = p =>
+                ProcessRequest(p);
+
+        }
+
+        private Response ProcessRequest(dynamic routeParameters)
+        {
+            // Resolve the script being reference by the request
+            var subPath = ((string)routeParameters["route"]);
+            var script = string.Format("{0}.ps1", Path.Combine(_settings.ScriptRepoRoot, subPath));
+            if (!File.Exists(script))
             {
-                var subPath = ((string)parameters["route"]);
-                var script = string.Format("{0}.ps1", Path.Combine(_settings.ScriptRepoRoot, subPath));
-                if ( !File.Exists(script) )
-                {
-                    return HttpStatusCode.NotFound;
-                }
+                return HttpStatusCode.NotFound;
+            }
 
-                var scriptArgs = new Dictionary<string, string>();
-                foreach (var q in Request.Query.Keys)
-                {
-                    scriptArgs.Add(q, Request.Query[q].Value);
-                }
+            // elements of the request will be passed to the script as named routeParameters
+            var scriptArgs = new Dictionary<string, string>();
 
-                var res = PowerShellRunner.Execute(script, scriptArgs);
-                
-                var retCode = HttpStatusCode.OK;
-                if (!res.Success)
-                {
-                    return Response.AsJson(new { Error = res.Output }, HttpStatusCode.InternalServerError);
-                }
-                
-                return Response.AsJson(res.Output);
-            };
+            // Process querystring routeParameters
+            foreach (var q in Request.Query.Keys)
+            {
+                scriptArgs.Add(q, Request.Query[q].Value);
+            }
+
+            // Process request body, if any
+            var body = this.Request.Body.AsString();
+            if (!string.IsNullOrEmpty(body))
+            {
+                scriptArgs.Add("body", body);
+            }
+
+            var res = PowerShellRunner.Execute(Request.Method, script, scriptArgs);
+
+            if (!res.Success)
+            {
+                return Response.AsJson(new { Error = res.Output }, HttpStatusCode.InternalServerError);
+            }
+
+            return Response.AsJson(res.Output);
         }
     }
 }

@@ -1,11 +1,7 @@
-﻿using System;
-using System.IO;
-using log4net;
+﻿using log4net;
 using Nancy;
 using Nancy.Bootstrapper;
 using Nancy.TinyIoc;
-
-using LogManager = ScriptServices.LogManager;
 
 namespace ScriptServices.hosting
 {
@@ -32,16 +28,6 @@ namespace ScriptServices.hosting
         {
             container.Register(_settings);
             container.Register(LogManager.Logger);
-            //container.Register<ConfigRepoSync>().AsSingleton();
-            
-            //if (_synchronise)
-            //{
-            //    container.Resolve<ConfigRepoSync>().Synchronise();
-            //}
-            //else
-            //{
-            //    container.Resolve<ConfigRepoSync>().Start();
-            //}
 
             pipelines.OnError.AddItemToEndOfPipeline((nancyContext, exception) =>
             {              

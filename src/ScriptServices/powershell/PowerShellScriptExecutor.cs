@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
-namespace ScriptServices
+namespace ScriptServices.powershell
 {
     public class PowerShellScriptExecutor
     {
@@ -41,7 +35,7 @@ namespace ScriptServices
             string results = process.StandardOutput.ReadToEnd();
             string errors = process.StandardError.ReadToEnd();
 
-            if (!string.IsNullOrEmpty(errors))
+            if (!string.IsNullOrEmpty(errors) || process.ExitCode != 0)
             {
                 return new ScriptResult { Success = false, Output = errors };
             }

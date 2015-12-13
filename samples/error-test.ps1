@@ -1,7 +1,6 @@
-[CmdletBinding()]
 param
 (
     $param1
 )
 
-write-error "Broken Hello World :-("
+write-error "Broken Hello World :-( - $param1"
